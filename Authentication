@@ -1,0 +1,42 @@
+if (metadata.account.apikey.match("^[a-zA-Z0-9_]+$")) {
+
+	var retryCount = 0;
+	var retry = false;
+	var sleepTime = 10000;
+
+	do {
+		if (retryCount < 3) {
+			//httprequest.addHeader('Authorization', 'X-API-TOKEN ' + metadata.account.apikey);
+      //httprequest.addHeader('X-API-TOKEN', metadata.account.apikey);
+      httprequest.addHeader('Content-Type', 'application/json');
+      //DOMO.log(metadata.account.apikey);
+			//httprequest.addHeader('X-API-TOKEN', metadata.account.apikey);
+			//httprequest.addParameter('X-API-TOKEN', metadata.account.apikey);
+			//httprequest.addParameter('token', metadata.account.apikey);
+      httprequest.addHeader('Content-Type', 'application/json');
+			var res = httprequest.post('https://api.polly.ai/v1/', JSON.stringify({"token":metadata.account.apikey,"id":metadata.account.id}));
+
+			if (httprequest.getStatusCode() == 200) {
+				retryCount = 0;
+				retry = false;
+				sleepTime = 10000;
+				auth.authenticationSuccess();
+			}
+			else {
+
+				if (httprequest.getStatusCode() == 429) {
+					retryCount = retryCount + 1;
+					retry = true;
+					DOMO.sleep(sleepTime);
+					DOMO.log('[BCS ClickUp Connector] Sleeping for: ' + sleepTime/1000 + ' seconds.');
+					sleepTime = sleepTime + 5000;
+					continue;
+				}
+				auth.authenticationFailed('The api key you entered is invalid. Please try again with a valid key.');
+			}
+		} else {auth.authenticationFailed('Authentication Failed. Please try again.');}
+	} while (retry)
+}
+else {
+	auth.authenticationFailed('Invalid values. Please check for the credentials passed');
+}
